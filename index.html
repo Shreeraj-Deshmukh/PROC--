@@ -698,12 +698,9 @@
             </div>
             <div>
                 <button class="suggest-submit" onclick="submitSuggestion()">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                    </svg>
-                    Submit as GitHub Issue
+                    Submit Suggestion
                 </button>
-                <p class="suggest-note">Opens a pre-filled GitHub issue — requires a GitHub account.</p>
+                <p class="suggest-note">No account needed. Suggestions go directly to the maintainer.</p>
             </div>
         </div>
     </div>
@@ -800,14 +797,10 @@ async function runCode() {
     con.innerHTML = '<span class="console-running"><span class="spinner"></span>Compiling and running...</span>';
 
     try {
-        const res = await fetch('https://emkc.org/api/v2/piston/execute', {
+        const res = await fetch('https://wandbox.org/api/compile.json', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({
-                language: 'c++',
-                version:  '*',
-                files:    [{ name: 'main.cpp', content: cpp }],
-            }),
+            body:    JSON.stringify({ compiler: 'gcc-head', code: cpp, options: '-std=c++14' }),
         });
 
         if (!res.ok) throw new Error(`API error ${res.status}`);
@@ -815,25 +808,20 @@ async function runCode() {
 
         con.innerHTML = '';
 
-        const compileErr = data.compile?.stderr;
-        const stdout     = data.run?.stdout;
-        const stderr     = data.run?.stderr;
-        const code       = data.run?.code;
-
-        if (compileErr) {
-            con.innerHTML += `<div class="console-err">${escHtml(compileErr)}</div>`;
+        if (data.compiler_error) {
+            con.innerHTML += `<div class="console-err">${escHtml(data.compiler_error)}</div>`;
         }
-        if (stdout) {
-            con.innerHTML += `<div class="console-out">${escHtml(stdout)}</div>`;
+        if (data.program_output) {
+            con.innerHTML += `<div class="console-out">${escHtml(data.program_output)}</div>`;
         }
-        if (stderr) {
-            con.innerHTML += `<div class="console-err">${escHtml(stderr)}</div>`;
+        if (data.program_error) {
+            con.innerHTML += `<div class="console-err">${escHtml(data.program_error)}</div>`;
         }
-        if (!compileErr && !stdout && !stderr) {
+        if (!data.compiler_error && !data.program_output && !data.program_error) {
             con.innerHTML = '<span class="console-info">Program exited with no output.</span>';
         }
-        if (code !== undefined) {
-            con.innerHTML += `<div class="console-info">exit code: ${code}</div>`;
+        if (data.status !== undefined) {
+            con.innerHTML += `<div class="console-info">exit code: ${data.status}</div>`;
         }
     } catch (e) {
         con.innerHTML = `<span class="console-err">Failed to reach compiler: ${escHtml(e.message)}</span>`;
@@ -842,27 +830,47 @@ async function runCode() {
     }
 }
 
-function submitSuggestion() {
+async function submitSuggestion() {
     const cpp    = document.getElementById('sg-cpp').value.trim();
     const proc   = document.getElementById('sg-proc').value.trim();
     const reason = document.getElementById('sg-reason').value.trim();
+    const btn    = document.querySelector('.suggest-submit');
 
     if (!cpp || !proc) {
         alert('Please fill in both the C++ token and the proc++ token.');
         return;
     }
 
-    const title = `Keyword suggestion: ${cpp} → ${proc}`;
-    const body  = [
-        `**C++ token:** \`${cpp}\``,
-        `**proc++ token:** \`${proc}\``,
-        reason ? `\n**Reason:** ${reason}` : '',
-        `\n---`,
-        `_Submitted via the [proc++ playground](https://github.com/Shreeraj-Deshmukh/PROC--)_`,
-    ].filter(Boolean).join('\n');
+    btn.disabled  = true;
+    btn.textContent = 'Sending...';
 
-    const url = `https://github.com/Shreeraj-Deshmukh/PROC--/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&labels=keyword-suggestion`;
-    window.open(url, '_blank');
+    try {
+        const res = await fetch('https://api.web3forms.com/submit', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body:    JSON.stringify({
+                access_key: '2d8a27d8-9569-46ca-87d0-5a5cca70b6d1',
+                subject:    `proc++ suggestion: ${cpp} → ${proc}`,
+                cpp_token:  cpp,
+                proc_token: proc,
+                reason:     reason || 'No reason provided',
+            }),
+        });
+
+        if (res.ok) {
+            document.getElementById('sg-cpp').value    = '';
+            document.getElementById('sg-proc').value   = '';
+            document.getElementById('sg-reason').value = '';
+            btn.textContent = '✓ Submitted!';
+            setTimeout(() => { btn.textContent = 'Submit Suggestion'; btn.disabled = false; }, 3000);
+        } else {
+            throw new Error('Submission failed');
+        }
+    } catch {
+        alert('Something went wrong. Try again.');
+        btn.textContent = 'Submit Suggestion';
+        btn.disabled = false;
+    }
 }
 
 function escHtml(s) {
