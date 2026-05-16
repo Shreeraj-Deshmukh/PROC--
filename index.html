@@ -350,6 +350,88 @@
             font-size: 12px; color: var(--muted);
         }
 
+        /* ────────── run button ────────── */
+        .run-btn {
+            font-family: 'Inter', sans-serif;
+            display: flex; align-items: center; gap: 6px;
+            background: linear-gradient(120deg, var(--cyan), var(--purple));
+            border: none;
+            color: #08080f;
+            padding: 4px 14px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .4px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: opacity .15s;
+        }
+
+        .run-btn:hover   { opacity: .85; }
+        .run-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+        /* ────────── console ────────── */
+        .console {
+            position: relative; z-index: 1;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .console-bar {
+            height: 40px;
+            padding: 0 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        .console-label {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 11px; font-weight: 600;
+            letter-spacing: .5px; text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .console-pill {
+            height: 18px; padding: 0 8px; border-radius: 20px;
+            font-size: 10px; font-weight: 700; letter-spacing: .4px;
+            text-transform: uppercase; display: flex; align-items: center;
+            background: rgba(52,211,153,.12); color: var(--green);
+        }
+
+        .console-body {
+            min-height: 90px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 14px 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            line-height: 1.7;
+            background: var(--bg);
+        }
+
+        .console-placeholder { color: var(--dim); }
+        .console-running     { color: var(--muted); }
+
+        .console-out  { color: var(--green); white-space: pre-wrap; }
+        .console-err  { color: #f87171;      white-space: pre-wrap; }
+        .console-info { color: var(--muted); font-size: 11px; margin-top: 6px; }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 10px; height: 10px;
+            border: 2px solid var(--border2);
+            border-top-color: var(--cyan);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
         /* ────────── footer ────────── */
         footer {
             position: relative; z-index: 1;
@@ -425,13 +507,32 @@
                 <span class="lang-pill cpp">C++</span>
                 generated
             </div>
-            <button class="copy-btn" id="copyBtn" onclick="copyOut()">Copy</button>
+            <div style="display:flex;gap:8px">
+                <button class="copy-btn" id="copyBtn" onclick="copyOut()">Copy</button>
+                <button class="run-btn" id="runBtn" onclick="runCode()">
+                    <svg width="9" height="10" viewBox="0 0 9 10" fill="currentColor"><path d="M0 0l9 5-9 5V0z"/></svg>
+                    Run
+                </button>
+            </div>
         </div>
         <div class="out-scroll">
             <pre><code class="language-cpp" id="output"></code></pre>
         </div>
     </div>
 
+</div>
+
+<!-- ── console ── -->
+<div class="console">
+    <div class="console-bar">
+        <div class="console-label">
+            <span class="console-pill">output</span>
+            program output
+        </div>
+    </div>
+    <div class="console-body" id="console">
+        <span class="console-placeholder">Click ▶ Run to execute your proc++ code.</span>
+    </div>
 </div>
 
 <!-- ── keyword reference ── -->
@@ -522,6 +623,50 @@ function copyOut() {
     btn.textContent = 'Copied!';
     btn.classList.add('ok');
     setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('ok'); }, 2000);
+}
+
+// ── run via Wandbox API ──
+async function runCode() {
+    const btn     = document.getElementById('runBtn');
+    const con     = document.getElementById('console');
+    const cpp     = outputEl.textContent;
+
+    btn.disabled  = true;
+    con.innerHTML = '<span class="console-running"><span class="spinner"></span>Compiling and running...</span>';
+
+    try {
+        const res = await fetch('https://wandbox.org/api/compile', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ code: cpp, compiler: 'gcc-head', options: '-std=c++14' }),
+        });
+
+        if (!res.ok) throw new Error(`API error ${res.status}`);
+        const data = await res.json();
+
+        con.innerHTML = '';
+
+        if (data.compiler_error) {
+            con.innerHTML += `<div class="console-err">${escHtml(data.compiler_error)}</div>`;
+        }
+        if (data.program_output) {
+            con.innerHTML += `<div class="console-out">${escHtml(data.program_output)}</div>`;
+        }
+        if (!data.compiler_error && !data.program_output) {
+            con.innerHTML = '<span class="console-info">Program exited with no output.</span>';
+        }
+        if (data.program_output && data.status !== undefined) {
+            con.innerHTML += `<div class="console-info">exit code: ${data.status}</div>`;
+        }
+    } catch (e) {
+        con.innerHTML = `<span class="console-err">Failed to reach compiler: ${escHtml(e.message)}</span>`;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ── keyword reference ──
