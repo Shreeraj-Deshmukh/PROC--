@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROC++ Playground</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg:        #08080f;
+            --surface:   #0f0f1c;
+            --surface2:  #14142a;
+            --border:    #1c1c35;
+            --border2:   #252545;
+            --text:      #d4d8ff;
+            --muted:     #5a5f88;
+            --dim:       #2a2d50;
+            --cyan:      #22d3ee;
+            --purple:    #a78bfa;
+            --green:     #34d399;
+            --pink:      #f472b6;
+            --orange:    #fb923c;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body { height: 100%; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* background ambient glow */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 70% 50% at 10% 70%, rgba(34,211,238,.05) 0%, transparent 100%),
+                radial-gradient(ellipse 60% 40% at 90% 10%, rgba(167,139,250,.05) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ────────── header ────────── */
+        header {
+            position: relative; z-index: 10;
+            height: 58px;
+            padding: 0 28px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(8,8,15,.85);
+            backdrop-filter: blur(12px);
+            flex-shrink: 0;
+        }
+
+        .logo-group { display: flex; align-items: center; gap: 10px; }
+
+        .logo {
+            font-size: 21px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(120deg, var(--cyan) 0%, var(--purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .version {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            border: 1px solid var(--border2);
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .header-right { display: flex; align-items: center; gap: 12px; }
+
+        .live {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 12px; font-weight: 500; color: var(--green);
+        }
+
+        .live-dot {
+            width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%,100% { opacity:1; box-shadow: 0 0 4px var(--green); }
+            50%      { opacity:.4; box-shadow: none; }
+        }
+
+        .gh-btn {
+            display: flex; align-items: center; gap: 7px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px; font-weight: 500;
+            color: var(--muted);
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            padding: 6px 14px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all .15s;
+        }
+
+        .gh-btn:hover { background: var(--surface2); color: var(--text); }
+
+        /* ────────── editors ────────── */
+        .editors {
+            position: relative; z-index: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            height: 62vh;
+            min-height: 400px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .pane {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg);
+        }
+
+        .pane + .pane { border-left: 1px solid var(--border); }
+
+        /* pane top bar */
+        .pane-bar {
+            flex-shrink: 0;
+            height: 40px;
+            padding: 0 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .pane-label {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 11px; font-weight: 600;
+            letter-spacing: .5px; text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .lang-pill {
+            height: 18px;
+            padding: 0 8px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .4px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+        }
+
+        .lang-pill.proc { background: rgba(34,211,238,.12); color: var(--cyan); }
+        .lang-pill.cpp  { background: rgba(167,139,250,.12); color: var(--purple); }
+
+        /* code area */
+        .code-area {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .line-nums {
+            flex-shrink: 0;
+            width: 42px;
+            padding: 14px 10px 14px 0;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            color: var(--dim);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            line-height: 1.7;
+            text-align: right;
+            overflow: hidden;
+            user-select: none;
+            white-space: pre;
+        }
+
+        textarea {
+            flex: 1;
+            background: transparent;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            line-height: 1.7;
+            padding: 14px 20px;
+            border: none;
+            outline: none;
+            resize: none;
+            tab-size: 4;
+            caret-color: var(--cyan);
+            overflow-y: auto;
+        }
+
+        textarea::selection { background: rgba(34,211,238,.15); }
+
+        /* prism output */
+        .out-scroll {
+            flex: 1;
+            overflow: auto;
+        }
+
+        .out-scroll pre[class*="language-"] {
+            margin: 0 !important;
+            padding: 14px 20px !important;
+            background: transparent !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 12.5px !important;
+            line-height: 1.7 !important;
+            min-height: 100%;
+            border-radius: 0 !important;
+        }
+
+        .out-scroll code[class*="language-"] {
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 12.5px !important;
+            background: none !important;
+        }
+
+        /* prism token overrides */
+        .token.comment    { color: #3a4070 !important; }
+        .token.keyword    { color: #a78bfa !important; font-style: normal !important; }
+        .token.string     { color: #34d399 !important; }
+        .token.number     { color: #fb923c !important; }
+        .token.function   { color: #22d3ee !important; }
+        .token.operator   { color: #5a6090 !important; }
+        .token.punctuation{ color: #3a4070 !important; }
+        .token.macro.directive, .token.directive-hash { color: #f472b6 !important; }
+        .token.class-name { color: #fbbf24 !important; }
+        .token.boolean    { color: #a78bfa !important; }
+
+        /* pane status bar */
+        .pane-status {
+            flex-shrink: 0;
+            height: 24px;
+            padding: 0 16px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 10.5px;
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        /* copy button */
+        .copy-btn {
+            font-family: 'Inter', sans-serif;
+            background: transparent;
+            border: 1px solid var(--border2);
+            color: var(--muted);
+            padding: 3px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .4px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .copy-btn:hover { background: var(--surface2); color: var(--text); }
+        .copy-btn.ok    { border-color: var(--green); color: var(--green); }
+
+        /* ────────── keyword section ────────── */
+        .kw-section {
+            position: relative; z-index: 1;
+            padding: 28px 28px 50px;
+        }
+
+        .kw-top {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .kw-heading {
+            font-size: 11px; font-weight: 600;
+            letter-spacing: .5px; text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+
+        .f-btn {
+            font-family: 'Inter', sans-serif;
+            font-size: 11px; font-weight: 500;
+            padding: 3px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            background: transparent;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .f-btn:hover  { border-color: var(--border2); color: var(--text); }
+        .f-btn.active { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+
+        .kw-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 3px;
+        }
+
+        .kw-card {
+            display: flex; align-items: center; gap: 10px;
+            padding: 7px 10px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            transition: all .12s;
+            cursor: default;
+        }
+
+        .kw-card:hover { background: var(--surface); border-color: var(--border); }
+
+        .kw-from {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px; color: var(--cyan); min-width: 118px;
+        }
+
+        .kw-arr { color: var(--dim); font-size: 11px; }
+
+        .kw-to {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px; color: var(--muted);
+        }
+
+        /* ────────── footer ────────── */
+        footer {
+            position: relative; z-index: 1;
+            margin-top: auto;
+            border-top: 1px solid var(--border);
+            padding: 14px 28px;
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 12px; color: var(--muted);
+            flex-shrink: 0;
+        }
+
+        footer a { color: var(--cyan); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        /* scrollbars */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+        /* responsive */
+        @media (max-width: 680px) {
+            .editors { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; height: auto; min-height: 700px; }
+            .pane + .pane { border-left: none; border-top: 1px solid var(--border); }
+            .live { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── header ── -->
+<header>
+    <div class="logo-group">
+        <span class="logo">PROC++</span>
+        <span class="version">v0.1</span>
+    </div>
+    <div class="header-right">
+        <div class="live"><div class="live-dot"></div>live</div>
+        <a class="gh-btn" href="https://github.com/Shreeraj-Deshmukh/PROC--" target="_blank">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+            GitHub
+        </a>
+    </div>
+</header>
+
+<!-- ── editors ── -->
+<div class="editors">
+
+    <!-- input -->
+    <div class="pane">
+        <div class="pane-bar">
+            <div class="pane-label">
+                <span class="lang-pill proc">proc++</span>
+                source
+            </div>
+        </div>
+        <div class="code-area">
+            <div class="line-nums" id="lineNums">1</div>
+            <textarea id="input" spellcheck="false"></textarea>
+        </div>
+        <div class="pane-status">
+            <span id="statLines">1 line</span>
+            <span id="statChars">0 chars</span>
+        </div>
+    </div>
+
+    <!-- output -->
+    <div class="pane">
+        <div class="pane-bar">
+            <div class="pane-label">
+                <span class="lang-pill cpp">C++</span>
+                generated
+            </div>
+            <button class="copy-btn" id="copyBtn" onclick="copyOut()">Copy</button>
+        </div>
+        <div class="out-scroll">
+            <pre><code class="language-cpp" id="output"></code></pre>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── keyword reference ── -->
+<div class="kw-section">
+    <div class="kw-top">
+        <span class="kw-heading">Keywords</span>
+        <div class="filters" id="filters"></div>
+    </div>
+    <div class="kw-grid" id="kwGrid"></div>
+</div>
+
+<!-- ── footer ── -->
+<footer>
+    <span>proc++ — C++ with renamed keywords</span>
+    <span>
+        <a href="https://github.com/Shreeraj-Deshmukh/PROC--" target="_blank">contribute on GitHub</a>
+        &nbsp;·&nbsp;debug using claude code
+    </span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+<script src="transpiler.js"></script>
+<script>
+const inputEl    = document.getElementById('input');
+const outputEl   = document.getElementById('output');
+const lineNumsEl = document.getElementById('lineNums');
+
+const EXAMPLE = `#onboard <iostream>
+#onboard <vector>
+
+using department std;
+
+procint basesalary() {
+    roster<procint> numbers
+    numbers.promote(1)
+    numbers.promote(2)
+    numbers.promote(3)
+
+    procfor (procint i = 0; i < numbers.size(); i++) {
+        procprint(numbers[i])
+    }
+
+    procif (numbers.size() > 0) {
+        procprint("Total items: " << numbers.size())
+        procprint("WELCOME TO PROCLIFE.")
+        procprint("YOU DONT CHOOSE PROCLIFE, PROCLIFE CHOOSES YOU")
+    } procelse {
+        procprint("Empty roster.")
+        procprint("BYE BYE BOWLEEE..")
+    }
+
+    procreturn 0
+}`;
+
+inputEl.value = EXAMPLE;
+
+function update() {
+    const cpp = transpile(inputEl.value);
+    outputEl.textContent = cpp;
+    Prism.highlightElement(outputEl);
+
+    const lines = inputEl.value.split('\n');
+    lineNumsEl.textContent = lines.map((_, i) => i + 1).join('\n');
+    inputEl.addEventListener('scroll', () => { lineNumsEl.scrollTop = inputEl.scrollTop; }, { passive: true });
+
+    document.getElementById('statLines').textContent = `${lines.length} line${lines.length !== 1 ? 's' : ''}`;
+    document.getElementById('statChars').textContent = `${inputEl.value.length} chars`;
+}
+
+inputEl.addEventListener('input', update);
+update();
+
+// Tab → 4 spaces
+inputEl.addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    e.preventDefault();
+    const s = inputEl.selectionStart;
+    inputEl.value = inputEl.value.slice(0, s) + '    ' + inputEl.value.slice(inputEl.selectionEnd);
+    inputEl.selectionStart = inputEl.selectionEnd = s + 4;
+    update();
+});
+
+function copyOut() {
+    navigator.clipboard.writeText(outputEl.textContent);
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('ok');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('ok'); }, 2000);
+}
+
+// ── keyword reference ──
+const CATS = {
+    'All':       null,
+    'Types':     ['procint','procfloat','procdouble','procstring','procvoid','procauto','nes','proctrue','procfalse'],
+    'Control':   ['procfor','procloop','procif','procelse','zs','procase','procbreak','proclife','procreturn'],
+    'I/O':       ['procprint','procin'],
+    'Memory':    ['hire','fire','promote','vacant','roster'],
+    'OOP':       ['proclass','memo','disclosed','procvate','procted','blueprint'],
+    'Modifiers': ['salary','base','basesalary'],
+    'Other':     ['department','attempt','escalate','report','#onboard'],
+};
+
+let active = 'All';
+
+function buildGrid(filter) {
+    const grid = document.getElementById('kwGrid');
+    grid.innerHTML = '';
+    const allowed = CATS[filter];
+    MAPPINGS.forEach(([pat, cpp]) => {
+        const proc = pat.source.replace(/\\b/g, '');
+        if (allowed && !allowed.includes(proc)) return;
+        const el = document.createElement('div');
+        el.className = 'kw-card';
+        el.innerHTML = `<span class="kw-from">${proc}</span><span class="kw-arr">→</span><span class="kw-to">${cpp}</span>`;
+        grid.appendChild(el);
+    });
+}
+
+const filtersEl = document.getElementById('filters');
+Object.keys(CATS).forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'f-btn' + (cat === 'All' ? ' active' : '');
+    btn.textContent = cat;
+    btn.onclick = () => {
+        document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        buildGrid(cat);
+    };
+    filtersEl.appendChild(btn);
+});
+
+buildGrid('All');
+</script>
+
+</body>
+</html>
