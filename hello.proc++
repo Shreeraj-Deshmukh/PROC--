@@ -1,0 +1,28 @@
+#onboard <iostream>
+#onboard <vector>
+#onboard <string>
+
+using department std;
+
+procint basesalary() {
+    roster<procint> numbers
+    numbers.promote(1)
+    numbers.promote(2)
+    numbers.promote(3)
+
+    procfor (procint i = 0; i < numbers.size(); i++) {
+        procprint(numbers[i])
+    }
+
+    procif (numbers.size() > 0) {
+        procprint("Total items: " << numbers.size())
+        procprint("WELCOME TO PROCLIFE.")
+        procprint("YOU DONT CHOOSE PROCLIFE, PROCLIFE CHOOSES YOU")
+    } procelse {
+        procprint("Empty roster.")
+        procprint("BYE BYE BOWLEEE..")
+    }
+
+    procreturn 0
+
+}
