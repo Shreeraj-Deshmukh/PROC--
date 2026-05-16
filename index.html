@@ -432,6 +432,122 @@
             margin-right: 6px;
         }
 
+        /* ────────── suggestion box ────────── */
+        .suggest-section {
+            position: relative; z-index: 1;
+            padding: 0 28px 50px;
+        }
+
+        .suggest-card {
+            border: 1px solid var(--border2);
+            border-radius: 12px;
+            padding: 28px 32px;
+            background: var(--surface);
+            max-width: 640px;
+        }
+
+        .suggest-card-header {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .suggest-icon {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: rgba(251,146,60,.12);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; flex-shrink: 0;
+        }
+
+        .suggest-title {
+            font-size: 15px; font-weight: 600; color: var(--text);
+        }
+
+        .suggest-desc {
+            font-size: 13px; color: var(--muted); line-height: 1.6;
+            margin-bottom: 18px;
+        }
+
+        .suggest-examples {
+            display: flex; flex-wrap: wrap; gap: 8px;
+            margin-bottom: 22px;
+        }
+
+        .ex-chip {
+            display: flex; align-items: center; gap: 6px;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .ex-chip .cpp-tok  { color: var(--purple); }
+        .ex-chip .arr      { color: var(--dim); }
+        .ex-chip .proc-tok { color: var(--cyan); }
+
+        .suggest-form {
+            display: flex; flex-direction: column; gap: 12px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .form-field { display: flex; flex-direction: column; gap: 6px; }
+
+        .form-field label {
+            font-size: 11px; font-weight: 600;
+            letter-spacing: .4px; text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .form-field input, .form-field textarea {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            background: var(--bg);
+            border: 1px solid var(--border2);
+            border-radius: 7px;
+            padding: 9px 12px;
+            color: var(--text);
+            outline: none;
+            transition: border-color .15s;
+            resize: none;
+            width: 100%;
+        }
+
+        .form-field input:focus, .form-field textarea:focus {
+            border-color: var(--cyan);
+        }
+
+        .form-field input::placeholder, .form-field textarea::placeholder {
+            color: var(--dim);
+        }
+
+        .suggest-submit {
+            font-family: 'Inter', sans-serif;
+            align-self: flex-start;
+            display: flex; align-items: center; gap: 8px;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            color: var(--text);
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .suggest-submit:hover { border-color: var(--cyan); color: var(--cyan); }
+
+        .suggest-note {
+            font-size: 11px; color: var(--muted);
+            margin-top: 4px;
+        }
+
         /* ────────── footer ────────── */
         footer {
             position: relative; z-index: 1;
@@ -544,6 +660,55 @@
     <div class="kw-grid" id="kwGrid"></div>
 </div>
 
+<!-- ── suggestion box ── -->
+<div class="suggest-section">
+    <div class="suggest-card">
+        <div class="suggest-card-header">
+            <div class="suggest-icon">💡</div>
+            <span class="suggest-title">Suggest a Keyword</span>
+        </div>
+
+        <p class="suggest-desc">
+            Have a C++ keyword that deserves a better proc/corporate DNA name?
+            Suggest a mapping — it might get added to the language.
+            Format is simple: <strong style="color:var(--text)">C++ token → proc++ token</strong>.
+        </p>
+
+        <div class="suggest-examples">
+            <div class="ex-chip"><span class="cpp-tok">delete</span><span class="arr">→</span><span class="proc-tok">fire</span></div>
+            <div class="ex-chip"><span class="cpp-tok">new</span><span class="arr">→</span><span class="proc-tok">hire</span></div>
+            <div class="ex-chip"><span class="cpp-tok">vector</span><span class="arr">→</span><span class="proc-tok">roster</span></div>
+            <div class="ex-chip"><span class="cpp-tok">main</span><span class="arr">→</span><span class="proc-tok">basesalary</span></div>
+        </div>
+
+        <div class="suggest-form">
+            <div class="form-row">
+                <div class="form-field">
+                    <label>C++ token</label>
+                    <input id="sg-cpp" type="text" placeholder="e.g.  return" spellcheck="false">
+                </div>
+                <div class="form-field">
+                    <label>proc++ token</label>
+                    <input id="sg-proc" type="text" placeholder="e.g.  checkout" spellcheck="false">
+                </div>
+            </div>
+            <div class="form-field">
+                <label>Reason <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+                <textarea id="sg-reason" rows="2" placeholder="Why does this name fit the proc/DNA theme?"></textarea>
+            </div>
+            <div>
+                <button class="suggest-submit" onclick="submitSuggestion()">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    Submit as GitHub Issue
+                </button>
+                <p class="suggest-note">Opens a pre-filled GitHub issue — requires a GitHub account.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ── footer ── -->
 <footer>
     <span>proc++ — C++ with renamed keywords</span>
@@ -635,10 +800,14 @@ async function runCode() {
     con.innerHTML = '<span class="console-running"><span class="spinner"></span>Compiling and running...</span>';
 
     try {
-        const res = await fetch('https://wandbox.org/api/compile', {
+        const res = await fetch('https://emkc.org/api/v2/piston/execute', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ code: cpp, compiler: 'gcc-head', options: '-std=c++14' }),
+            body:    JSON.stringify({
+                language: 'c++',
+                version:  '*',
+                files:    [{ name: 'main.cpp', content: cpp }],
+            }),
         });
 
         if (!res.ok) throw new Error(`API error ${res.status}`);
@@ -646,23 +815,54 @@ async function runCode() {
 
         con.innerHTML = '';
 
-        if (data.compiler_error) {
-            con.innerHTML += `<div class="console-err">${escHtml(data.compiler_error)}</div>`;
+        const compileErr = data.compile?.stderr;
+        const stdout     = data.run?.stdout;
+        const stderr     = data.run?.stderr;
+        const code       = data.run?.code;
+
+        if (compileErr) {
+            con.innerHTML += `<div class="console-err">${escHtml(compileErr)}</div>`;
         }
-        if (data.program_output) {
-            con.innerHTML += `<div class="console-out">${escHtml(data.program_output)}</div>`;
+        if (stdout) {
+            con.innerHTML += `<div class="console-out">${escHtml(stdout)}</div>`;
         }
-        if (!data.compiler_error && !data.program_output) {
+        if (stderr) {
+            con.innerHTML += `<div class="console-err">${escHtml(stderr)}</div>`;
+        }
+        if (!compileErr && !stdout && !stderr) {
             con.innerHTML = '<span class="console-info">Program exited with no output.</span>';
         }
-        if (data.program_output && data.status !== undefined) {
-            con.innerHTML += `<div class="console-info">exit code: ${data.status}</div>`;
+        if (code !== undefined) {
+            con.innerHTML += `<div class="console-info">exit code: ${code}</div>`;
         }
     } catch (e) {
         con.innerHTML = `<span class="console-err">Failed to reach compiler: ${escHtml(e.message)}</span>`;
     } finally {
         btn.disabled = false;
     }
+}
+
+function submitSuggestion() {
+    const cpp    = document.getElementById('sg-cpp').value.trim();
+    const proc   = document.getElementById('sg-proc').value.trim();
+    const reason = document.getElementById('sg-reason').value.trim();
+
+    if (!cpp || !proc) {
+        alert('Please fill in both the C++ token and the proc++ token.');
+        return;
+    }
+
+    const title = `Keyword suggestion: ${cpp} → ${proc}`;
+    const body  = [
+        `**C++ token:** \`${cpp}\``,
+        `**proc++ token:** \`${proc}\``,
+        reason ? `\n**Reason:** ${reason}` : '',
+        `\n---`,
+        `_Submitted via the [proc++ playground](https://github.com/Shreeraj-Deshmukh/PROC--)_`,
+    ].filter(Boolean).join('\n');
+
+    const url = `https://github.com/Shreeraj-Deshmukh/PROC--/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&labels=keyword-suggestion`;
+    window.open(url, '_blank');
 }
 
 function escHtml(s) {
